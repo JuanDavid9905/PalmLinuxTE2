@@ -6,7 +6,8 @@ on:
 env:
   ARCH: arm
   CROSS_COMPILE: arm-none-eabi-
-  PALMSDK: /opt/palm-sdk
+  PALMDEV: /opt/palm-sdk
+  PATH: /tmp/prc-tools-remix/dist/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 jobs:
   build-tungsten-e2:
@@ -44,12 +45,15 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/jichu4n/palm-os-sdk.git /opt/palm-sdk
 
-      - name: Clone & Build prc-tools-remix
+      - name: Clone prc-tools-remix
         run: |
           git clone --depth 1 https://github.com/jichu4n/prc-tools-remix.git /tmp/prc-tools-remix
-          cd /tmp/prc-tools-remix
+
+      - name: Build & Install prc-tools-remix
+        working-directory: /tmp/prc-tools-remix
+        run: |
           chmod +x tools/build.sh
-          bash tools/build.sh /usr
+          bash tools/build.sh
 
       - name: Clone & Compile Cocoboot PRC
         run: |
