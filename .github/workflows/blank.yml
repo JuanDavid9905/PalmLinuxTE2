@@ -53,7 +53,7 @@ jobs:
         working-directory: /tmp/prc-tools-remix
         run: |
           chmod +x tools/build.sh
-          bash tools/build.sh
+          ./tools/build.sh
 
       - name: Clone & Compile Cocoboot PRC
         run: |
