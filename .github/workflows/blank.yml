@@ -43,14 +43,11 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/jichu4n/palm-os-sdk.git /opt/palm-sdk
 
-      - name: Build & Install prc-tools
+      - name: Clone & Build prc-tools-remix
         run: |
-          git clone --depth 1 https://github.com/prc-tools/prc-tools.git /tmp/prc-tools
-          cd /tmp/prc-tools
-          ./autogen.sh
-          ./configure --prefix=/usr --enable-targets=m68k-palmos,arm-palmos
-          make -j$(nproc)
-          make install
+          git clone --depth 1 https://github.com/jichu4n/prc-tools-remix.git /tmp/prc-tools-remix
+          cd /tmp/prc-tools-remix
+          ./tools/build.sh
 
       - name: Clone & Compile Cocoboot PRC
         run: |
