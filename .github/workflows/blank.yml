@@ -1,36 +1,85 @@
-# This is a basic workflow to help you get started with Actions
+name: Palm Tungsten E2 Linux & Bootloader Pipeline
 
-name: CI
-
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+env:
+  ARCH: arm
+  CROSS_COMPILE: arm-none-eabi-
+  PALMSDK: /opt/palm-sdk
+
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
+  build-tungsten-e2:
     runs-on: ubuntu-latest
+    container:
+      image: alpine:3.18
+      options: --privileged
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
-
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
-
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      - name: Install Alpine Build Dependencies
         run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+          apk update
+          apk add --no-cache \
+            build-base \
+            git \
+            autoconf \
+            automake \
+            libtool \
+            texinfo \
+            gawk \
+            flex \
+            bison \
+            zlib-dev \
+            ncurses-dev \
+            bc \
+            perl \
+            gmp-dev \
+            mpfr-dev \
+            mpc1-dev \
+            gcc-arm-none-eabi \
+            binutils-arm-none-eabi
+
+      - name: Clone Palm OS SDK Headers
+        run: |
+          git clone --depth 1 https://github.com/jichu4n/palm-os-sdk.git /opt/palm-sdk
+
+      - name: Build & Install prc-tools
+        run: |
+          git clone --depth 1 https://github.com/prc-tools/prc-tools.git /tmp/prc-tools
+          cd /tmp/prc-tools
+          ./autogen.sh
+          ./configure --prefix=/usr --enable-targets=m68k-palmos,arm-palmos
+          make -j$(nproc)
+          make install
+
+      - name: Clone & Compile Cocoboot PRC
+        run: |
+          git clone https://github.com/hackndev/cocoboot.git /workspace/cocoboot
+          cd /workspace/cocoboot
+          make clean
+          make
+
+      - name: Clone & Compile Linux Kernel (linux-hnd for PXA256)
+        run: |
+          git clone https://github.com/hackndev/linux-hnd.git /workspace/linux-hnd
+          cd /workspace/linux-hnd
+          make pxa_defconfig
+          make -j$(nproc) zImage
+
+      - name: Generate SD Card Directory Structure & Config
+        run: |
+          mkdir -p /workspace/sdcard/PALM/Launcher
+          
+          # Copy Bootloader PRC
+          cp /workspace/cocoboot/cocoboot.prc /workspace/sdcard/PALM/Launcher/
+          
+          # Copy Compiled Kernel Image
+          cp /workspace/linux-hnd/arch/arm/boot/zImage /workspace/sdcard/zImage
+          
+          # Generate Cocoboot Configuration File
+          cat << 'EOF' > /workspace/sdcard/cocoboot.conf
+          kernel /zImage
+          cmdline console=tty0 root=/dev/mmcblk0p2 rootfstype=ext2 rw rootwait
+          EOF
+          
+          echo "Build pipeline completed successfully. Artifacts staged in /workspace/sdcard/"
