@@ -21,6 +21,7 @@ jobs:
           apk update
           apk add --no-cache \
             build-base \
+            bash \
             git \
             autoconf \
             automake \
@@ -47,7 +48,8 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/jichu4n/prc-tools-remix.git /tmp/prc-tools-remix
           cd /tmp/prc-tools-remix
-          ./tools/build.sh
+          chmod +x tools/build.sh
+          bash tools/build.sh /usr
 
       - name: Clone & Compile Cocoboot PRC
         run: |
@@ -80,3 +82,9 @@ jobs:
           EOF
           
           echo "Build pipeline completed successfully. Artifacts staged in /workspace/sdcard/"
+
+      - name: Upload SD Card Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: palm-tungsten-e2-sdcard
+          path: /workspace/sdcard/
